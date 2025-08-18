@@ -1,11 +1,10 @@
-import os
 import json
 import requests
 import pandas as pd
 from settings import *
 from datetime import datetime
 from typing import TYPE_CHECKING
-from utils_aem import utils, utils_web
+from utils_aem import utils
 from libs.exceptions import log_exceptions
 from sistemas.suframa import suframa_selenium
 from sistemas.fluig import fluig_request
@@ -17,8 +16,6 @@ class ConsultaRecebimento():
     
     def __init__(self):
         self.url_recebimento =  'https://simnac.suframa.gov.br/#/confirmar-recebimento-mercadoria'
-        self.suframa = suframa_selenium.SuframaSelenium()
-        self.utils_web = utils_web.UtilsWeb()
         self.utils = utils.Utils()
 
     @log_exceptions
@@ -67,8 +64,9 @@ class ConsultaRecebimento():
         return json.loads(response.text).get('content').get('values')
 
     @log_exceptions
-    def pegar_itens_suframa(self, usuario, senha) -> list[dict]:
-        self.suframa.logar_suframa(usuario, senha)
+    def pegar_notas_suframa(self, usuario, senha) -> list[dict]:
+        suframa = suframa_selenium.SuframaSelenium()
+        suframa.logar_suframa(usuario, senha)
         url = "https://appsimnac.suframa.gov.br/ConfirmarRecebimentoMercadoriaGrid"
 
         querystring = {"servico":"ConfirmarRecebimentoMercadoriaGrid","columns.0":"UF","columns.1":"CNPJ Remetente","columns.2":"Razão Social","columns.3":"N° Nota Fiscal","columns.4":"Valor da Nota","columns.5":"Data de Emissão","columns.6":"Setor","columns.7":"PIN","columns.8":"Data Desembaraço Sefaz","columns.9":"Data Limite de Vistoria","columns.10":"Qtde de dias Restantes P/ Vistoria","columns.11":"Qtde de Itens","fields.0":"ufRemetente","fields.1":"cnpjRemetenteFmt","fields.2":"razaoRemetente","fields.3":"numeroNf","fields.4":"totalNfe","fields.5":"dataEmissaoNfeFmt","fields.6":"descSetor","fields.7":"numeroPin","fields.8":"dataSelagemSefazFmt","fields.9":"dataLimiteVistoriaFmt","fields.10":"qtdDias","fields.11":"qtdItensSolicitacao","tipoOpcao":"0","page":"1","size":"1000000","exportarListagem":"true"}
@@ -77,7 +75,7 @@ class ConsultaRecebimento():
         headers = {
             "accept": "application/json, text/plain, */*",
             "accept-language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-            "authorization": f"""Bearer {self.suframa.driver.execute_script("return window.sessionStorage.getItem('token');")}""",
+            "authorization": f"""Bearer {suframa.driver.execute_script("return window.sessionStorage.getItem('token');")}""",
             "frontguid": "b245529f-29da-8ffa-3e5e-f3f15795e1ae",
             "origin": "https://simnac.suframa.gov.br",
             "priority": "u=1, i",
@@ -88,13 +86,14 @@ class ConsultaRecebimento():
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
         }
         response = requests.request("GET", url, data=payload, headers=headers, params=querystring)
-        self.suframa.fechar()
+        suframa.fechar()
+        self.utils.kill_process_by_name_fast('Chrome.exe')
         if response.status_code != 200:
             raise Exception(f'Consulta confirmar recebimento status code {response.status_code}')
         return json.loads(response.text).get('items')
 
     @log_exceptions
-    def pegar_data_emissao_mais_antiga_suframa(self, lista_itens:list[dict]) -> "datetime":
+    def pegar_data_emissao_mais_antiga_notas_suframa(self, lista_itens:list[dict]) -> "datetime":
         mais_antiga = None
 
         for item in lista_itens:
@@ -106,11 +105,11 @@ class ConsultaRecebimento():
         return mais_antiga
     
     @log_exceptions
-    def conciliar_itens(self, itens_suframa:list[dict], itens_fluig:list[dict]) -> list["DataFrame"]:
+    def conciliar_informacoes(self, notas_suframa:list[dict], solicitacoes_fluig:list[dict], cnpj_filial:str) -> list["DataFrame"]:
         # colunas suframa match cnpjRemetenteFmt e numeroNf
-        data_frame_suframa = pd.DataFrame.from_dict(itens_suframa)
+        data_frame_suframa = pd.DataFrame.from_dict(notas_suframa)
         # Colunas fluig match CNPJFORNECEDOR e NR_DOCUMENTO
-        data_frame_fluig = pd.DataFrame.from_dict(itens_fluig)
+        data_frame_fluig = pd.DataFrame.from_dict(solicitacoes_fluig)
         
         for coluna in COLUNAS_MERGE_SUFRAMA:
             data_frame_suframa[coluna] = data_frame_suframa[coluna].astype(str).str.strip()
@@ -128,8 +127,6 @@ class ConsultaRecebimento():
         )[COLUNAS_UTILIZADAS_NO_PROCESSO].fillna('')
         df_mesclado =  df_mesclado.apply(lambda x: x.astype(str).str.strip())
         df_mesclado['STATUS'] = df_mesclado['STATUS'].replace('', 'NAO ENCONTRADO')
-        return df_mesclado 
-
-    @log_exceptions
-    def inserir_na_base(self, df_itens:list["DataFrame"]) -> None:
-        print("")
+        df_mesclado['CNPJ_SEM_MASCARA'] = df_mesclado['cnpjRemetenteFmt'].apply(lambda x: self.utils.remover_mascara(x))
+        df_mesclado['CNPJ_FILIAL'] = cnpj_filial
+        return df_mesclado             
