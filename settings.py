@@ -7,6 +7,9 @@ DB_SERVER = '10.200.47.189'
 DB_NAME = 'TESTE'
 CNN_STRING = f"Driver={{SQL Server}};Server={DB_SERVER};Database={DB_NAME};Uid={DB_USER};Pwd="
 
+# Parametros do Fluig
+AMBIENTE = 'TESTE'
+
 # Configs Gerais
 COLUNAS_MERGE_SUFRAMA = ['cnpjRemetenteFmt', 'numeroNf']
 COLUNAS_MERGE_FLUIG = ['CNPJFORNECEDOR', 'NUMERONOTAFISCAL']
