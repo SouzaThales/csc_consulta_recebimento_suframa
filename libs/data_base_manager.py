@@ -1,8 +1,6 @@
 from settings import *
-from typing import TYPE_CHECKING
 from libs.exceptions import log_exceptions
-if TYPE_CHECKING:
-    from datetime import datetime
+
 
 class DBManager():
 
@@ -29,6 +27,8 @@ class DBManager():
                                 CONTROLE.FL_ATIVO = 1 
                               AND
                                 COFRE.FLATIVO = 1 
+                              AND
+                                IDBOT = 10
                                 ''')
 
     @log_exceptions
@@ -67,7 +67,7 @@ class DBManager():
                               UPDATE 
                                 CSC_NOTAS_AGUARDANDO_RECEBIMENTO
                               SET 
-                                MSG_ERRO = '{mensagem_erro}',
+                                MSG_ERRO = '{mensagem_erro}'
                               WHERE
                                 ID = {id} 
                                 ''')
@@ -86,15 +86,15 @@ class DBManager():
     @log_exceptions
     def inserir_notas_na_base(self, notas_para_abrir_chamados:list[dict]) -> None:
         notas_na_base = self.pegar_notas_na_base()
-        
         queries = ''
         for infos_item in notas_para_abrir_chamados:
             chave_unica = infos_item.get('CNPJ_SEM_MASCARA')+'_'+infos_item.get('numeroNf')
-            relacionados_na_base = [nota for nota in notas_na_base if nota.get('CHAVE_IDENTIFICADORA') == chave_unica]
+            relacionados_na_base = [nota for nota in notas_na_base if nota.get('CHAVE_IDENTIFICADORA') == chave_unica]                      
             tem_dois_chamados_na_base = len(relacionados_na_base) == 2
             tem_na_base_e_esta_dentro_do_limite_vistoria = len(relacionados_na_base) > 0 and int(infos_item.get('qtdDias')) > DIAS_LIMITE_VISTORIA
+            tem_na_base_menor_que_cinco_dias = len(relacionados_na_base) == 1 and relacionados_na_base[0].get('QUANTIDADE_DIAS_VISTORIA') <= DIAS_LIMITE_VISTORIA
 
-            if tem_dois_chamados_na_base or tem_na_base_e_esta_dentro_do_limite_vistoria:
+            if tem_dois_chamados_na_base or tem_na_base_e_esta_dentro_do_limite_vistoria or tem_na_base_menor_que_cinco_dias:
                 continue
     
             queries += f'''
@@ -116,14 +116,15 @@ class DBManager():
                                 '{chave_unica}', 
                                 '{infos_item.get('STATUS')}', 
                                 '{infos_item.get('NUM_PROCES')}', 
-                                {infos_item.get('qtdDias')}, 
+                                {int(infos_item.get('qtdDias'))}, 
                                 '{infos_item.get('cnpjRemetenteFmt')}', 
                                 '{infos_item.get('numeroNf')}', 
                                 '{infos_item.get('CNPJ_FILIAL')}', 
                                 '{infos_item.get('CHAVEACESSONFCOMPRA')}', 
-                                '{infos_item.get('DESCRICAOFORNECEDOR')}'
+                                '{infos_item.get('razaoRemetente')}'
                             );
                         '''
-            notas_na_base.append({'CHAVE_IDENTIFICADORA':chave_unica})
+            notas_na_base.append({'CHAVE_IDENTIFICADORA':chave_unica, 'QUANTIDADE_DIAS_VISTORIA':int(infos_item.get('qtdDias'))})
+
         if queries:
           self.db.execute_query(queries)
