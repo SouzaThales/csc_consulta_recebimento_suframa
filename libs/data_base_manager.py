@@ -1,3 +1,4 @@
+from settings import *
 from libs.exceptions import log_exceptions
 
 
@@ -46,6 +47,18 @@ class DBManager():
                                 ''')
     
     @log_exceptions
+    def atualizar_abertura_chamado(self, id:int, numero_chamado:str) -> list[dict]:
+        self.db.execute_query(f'''
+                              UPDATE 
+                                CSC_NOTAS_AGUARDANDO_RECEBIMENTO
+                              SET 
+                                CHAMADO_ABERTO_CSC = '{numero_chamado}',
+                                ID_STATUS_PROCESSAMENTO = 3
+                              WHERE
+                                ID = {id} 
+                                ''')
+    
+    @log_exceptions
     def pegar_notas_na_base(self) -> list[dict]:
         return self.db.execute_query(f'''   
                                         SELECT
@@ -65,7 +78,7 @@ class DBManager():
             chave_unica = infos_item.get('CNPJ_SEM_MASCARA')+'_'+infos_item.get('numeroNf')
             relacionados_na_base = [nota for nota in notas_na_base if nota.get('CHAVE_IDENTIFICADORA') == chave_unica]
             tem_dois_chamados_na_base = len(relacionados_na_base) == 2
-            tem_na_base_e_esta_dentro_do_limite_vistoria = len(relacionados_na_base) > 0 and int(infos_item.get('qtdDias')) > 5
+            tem_na_base_e_esta_dentro_do_limite_vistoria = len(relacionados_na_base) > 0 and int(infos_item.get('qtdDias')) > DIAS_LIMITE_VISTORIA
 
             if tem_dois_chamados_na_base or tem_na_base_e_esta_dentro_do_limite_vistoria:
                 continue
@@ -80,7 +93,9 @@ class DBManager():
                               QUANTIDADE_DIAS_VISTORIA,
                               CNPJ_FORNECEDOR,
                               NUMERO_NF,
-                              CNPJ_FILIAL
+                              CNPJ_FILIAL,
+                              CHAVE_NF,
+                              RAZAO_FORNECEDOR
                             ) 
                             VALUES (
                                 24,
@@ -90,7 +105,9 @@ class DBManager():
                                 {infos_item.get('qtdDias')}, 
                                 '{infos_item.get('cnpjRemetenteFmt')}', 
                                 '{infos_item.get('numeroNf')}', 
-                                '{infos_item.get('CNPJ_FILIAL')}'
+                                '{infos_item.get('CNPJ_FILIAL')}', 
+                                '{infos_item.get('CHAVEACESSONFCOMPRA')}', 
+                                '{infos_item.get('DESCRICAOFORNECEDOR')}'
                             );
                         '''
             notas_na_base.append({'CHAVE_IDENTIFICADORA':chave_unica})

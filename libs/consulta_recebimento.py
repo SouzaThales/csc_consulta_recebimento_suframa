@@ -109,9 +109,7 @@ class ConsultaRecebimento():
     
     @log_exceptions
     def conciliar_informacoes(self, notas_suframa:list[dict], solicitacoes_fluig:list[dict], cnpj_filial:str) -> list["DataFrame"]:
-        # colunas suframa match cnpjRemetenteFmt e numeroNf
         data_frame_suframa = pd.DataFrame.from_dict(notas_suframa)
-        # Colunas fluig match CNPJFORNECEDOR e NR_DOCUMENTO
         data_frame_fluig = pd.DataFrame.from_dict(solicitacoes_fluig)
         
         for coluna in COLUNAS_MERGE_SUFRAMA:
@@ -135,16 +133,36 @@ class ConsultaRecebimento():
         return df_mesclado             
     
     @log_exceptions
-    def abrir_chamado_para_o_csc(self, usuario:str, senha:str, ambiente:str, cnpj_filial:str, cnpj_fornecedor:str, chave_acesso:str, razao_fornecedor:str, status_nota:str) -> None:
+    def valida_corte_dias_vistoria(self, notas_suframa:list[dict]) -> list[dict]:
+        if not notas_suframa:
+            return []
+        data_frame_suframa = pd.DataFrame.from_dict(notas_suframa)
+        data_frame_suframa = data_frame_suframa.query(f'qtdDias <= {DIAS_VISTORIA_CORTE}')
+        return data_frame_suframa.to_dict(orient='records')
+                  
+    @log_exceptions
+    def montar_motivo_abertura_chamado(self, status_nota:str, numero_nf:str, numero_fluig:str, qnt_dias_vistoria:int) -> str:
+        if status_nota == 'NAO ENCONTRADO':
+            msg = f'''Nota fiscal {numero_nf}, Fluig {numero_fluig} - STATUS {status_nota} - QTD DE DIAS RESTANTE VISTORIA {qnt_dias_vistoria}'''
+        else:
+            msg = f'''Nota fiscal {numero_nf}, Fluig NÃO LOCALIZADO - QUANTIDADE DE DIAS RESTANTE VISTORIA {qnt_dias_vistoria}'''
+        return msg             
+    
+    @log_exceptions
+    def abrir_chamado_para_o_csc(self, usuario:str, senha:str, ambiente:str, cnpj_filial:str, cnpj_fornecedor:str, chave_acesso:str, razao_fornecedor:str, motivo_solicitacao:str) -> None:
         fluig = fluig_selenium.FluigSelenium(usuario, senha, ambiente)
         fluig.logar_fluig()
         fluig.driver.get(self.url_abrir_chamado_revenda)
         WebDriverWait(fluig.driver, 60).until(EC.frame_to_be_available_and_switch_to_it((By.CSS_SELECTOR, "#workflowView-cardViewer")))
         fluig.driver.find_element(By.CSS_SELECTOR, '#telefoneContato').send_keys('(99) 99999-9999')
         fluig.preencher_input_search_by_label('empresa', cnpj_filial)
-        fluig.driver.find_element(By.CSS_SELECTOR, '#motivoSolicitacao').send_keys("motivo")
+        fluig.driver.find_element(By.CSS_SELECTOR, '#motivoSolicitacao').send_keys(motivo_solicitacao)
         fluig.driver.find_element(By.CSS_SELECTOR, '#tabDadosAdicionais').click()
         WebDriverWait(fluig.driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#chaveAcesso"))).send_keys(chave_acesso)
         fluig.driver.find_element(By.CSS_SELECTOR, '#cnpj').send_keys(cnpj_fornecedor)
-        fluig.driver.find_element(By.CSS_SELECTOR, '#razao_forncedor').send_keys(razao_fornecedor)
-        print('')
+        fluig.driver.find_element(By.CSS_SELECTOR, '#razao_fornecedor').send_keys(razao_fornecedor)
+        fluig.driver.find_element(By.CSS_SELECTOR, '#razao_fornecedor').click()
+        WebDriverWait(fluig.driver, 120).until(EC.text_to_be_present_in_element((By.CSS_SELECTOR, "#message-page > div > div.title"), "iniciada com sucesso."))
+        chamado = self.driver.find_element(By.CSS_SELECTOR, "#message-page > div > div.title > span > a").text.strip()
+        self.utils.kill_process_by_name_fast('Chrome.exe')
+        return chamado

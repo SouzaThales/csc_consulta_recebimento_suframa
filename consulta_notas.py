@@ -8,10 +8,12 @@ from libs import consulta_recebimento, data_base_manager
 
 def main():
     try:
+        print('\Inicio do processamento')
         db = DataBase(CNN_STRING + crypt_aes.AESCipher().decrypt(DB_KEY, DB_ENC))
+        db.atualizar_controle_execucao_inicio(46)
         daba_base = data_base_manager.DBManager(db)
         consulta = consulta_recebimento.ConsultaRecebimento() 
-        credenciais_fluig = db.get_credenciais_no_cofre(18, 'FLUIG')
+        credenciais_fluig = db.get_credenciais_no_cofre(0, 'FLUIG')
         infos_filiais = daba_base.pegar_filiais_para_processamento()
 
         for info_filial in infos_filiais:
@@ -19,6 +21,7 @@ def main():
                 start_time = time.time()
                 print(f"Processando {info_filial.get('USUARIO')}\n\tConsultando suframa...")
                 notas_suframa = consulta.pegar_notas_suframa(info_filial.get('USUARIO'), crypt_aes.AESCipher().decrypt(info_filial.get('DSCHAVE'), info_filial.get('DSVALORCRIPTOGRAFADO')))
+                notas_suframa = consulta.valida_corte_dias_vistoria(notas_suframa)
                 if not notas_suframa:
                     print("\tNada nessa filial")
                 else:
@@ -36,8 +39,12 @@ def main():
             except Exception as e:
                 print(f'\t{e}')
                 consulta.utils.kill_process_by_name_fast('Chrome.exe')
+
+        db.atualizar_controle_execucao_fim(46, 1)
+        print('\nFim do processamento')
     except Exception as e:
-        print(e)
+        db.atualizar_controle_execucao_fim(46, 0)
+        raise Exception(f'{e}')
     
 
 if __name__ == "__main__":
