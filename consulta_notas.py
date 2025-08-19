@@ -8,7 +8,7 @@ from libs import consulta_recebimento, data_base_manager
 
 def main():
     try:
-        print('\Inicio do processamento')
+        print('Inicio do processamento')
         db = DataBase(CNN_STRING + crypt_aes.AESCipher().decrypt(DB_KEY, DB_ENC))
         db.atualizar_controle_execucao_inicio(IDBOT)
         data_base = data_base_manager.DBManager(db)
@@ -21,7 +21,6 @@ def main():
                 start_time = time.time()
                 print(f"Processando {info_filial.get('USUARIO')}\n\tConsultando suframa...")
                 notas_suframa = consulta.pegar_notas_suframa(info_filial.get('USUARIO'), crypt_aes.AESCipher().decrypt(info_filial.get('DSCHAVE'), info_filial.get('DSVALORCRIPTOGRAFADO')))
-                notas_suframa = consulta.valida_corte_dias_vistoria(notas_suframa)
                 if not notas_suframa:
                     print("\tNada nessa filial")
                 else:
@@ -30,7 +29,7 @@ def main():
                     solicitacoes_fluig = consulta.pegar_solicitacoes_fluig(credenciais_fluig.get('LOGIN'), crypt_aes.AESCipher().decrypt(credenciais_fluig.get('CHAVE'), credenciais_fluig.get('SENHA')), data_mais_antiga.strftime('%Y-%m-%d'), datetime.now().strftime('%Y-%m-%d'))
                     print('\tFluig consultado!\n\tConciliando informações...')
                     df_itens_conciliados = consulta.conciliar_informacoes(notas_suframa, solicitacoes_fluig, info_filial.get('CNPJ_FILIAL'))
-                    df_notas_para_abrir_chamados = df_itens_conciliados.query("STATUS in ['FINALIZADA', 'CANCELADA', 'NAO ENCONTRADO']")
+                    df_notas_para_abrir_chamados = df_itens_conciliados.query(f"STATUS in ['FINALIZADA', 'CANCELADA', 'NAO ENCONTRADO'] and qtdDias <= {DIAS_VISTORIA_CORTE}")
                     data_base.inserir_notas_na_base(df_notas_para_abrir_chamados.to_dict(orient='records'))
                     print('\tNotas inseridas no banco de dados!')
                 end_time = time.time() - start_time
@@ -41,7 +40,7 @@ def main():
                 consulta.utils.kill_process_by_name_fast('Chrome.exe')
 
         db.atualizar_controle_execucao_fim(IDBOT, 1)
-        print('\nFim do processamento')
+        print('Fim do processamento')
     except Exception as e:
         db.atualizar_controle_execucao_fim(IDBOT, 0)
         raise Exception(f'{e}')
