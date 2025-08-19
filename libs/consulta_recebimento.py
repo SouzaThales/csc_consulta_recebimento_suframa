@@ -2,15 +2,16 @@ import json
 import requests
 import pandas as pd
 from settings import *
+from utils_aem import utils
 from datetime import datetime
 from typing import TYPE_CHECKING
-from utils_aem import utils
 from libs.exceptions import log_exceptions
-from sistemas.suframa import suframa_selenium
-from sistemas.fluig import fluig_request, fluig_selenium
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+from sistemas.suframa import suframa_selenium
 from selenium.webdriver.support.ui import WebDriverWait
+from sistemas.fluig import fluig_request, fluig_selenium
+from selenium.webdriver.support import expected_conditions as EC
+
 if TYPE_CHECKING:
     from pandas import DataFrame
 
@@ -120,8 +121,9 @@ class ConsultaRecebimento():
         data_frame_suframa['numeroNf'] = data_frame_suframa['numeroNf'].astype(str)
         data_frame_fluig['cnpjRemetenteFmt'] = data_frame_suframa['cnpjRemetenteFmt'].astype(str)
         data_frame_fluig['numeroNf'] = data_frame_suframa['numeroNf'].astype(str)
-        df_mesclado =  data_frame_suframa.merge(
-            data_frame_fluig[COLUNAS_MERGE_FLUIG+COLUNAS_FLUIG_UTILIZADAS],
+        df_mesclado = data_frame_suframa.merge(
+            data_frame_fluig[COLUNAS_MERGE_FLUIG + COLUNAS_FLUIG_UTILIZADAS]
+                .drop_duplicates(subset=COLUNAS_MERGE_FLUIG, keep='first'),
             left_on=COLUNAS_MERGE_SUFRAMA,
             right_on=COLUNAS_MERGE_FLUIG,
             how='left'
@@ -130,6 +132,7 @@ class ConsultaRecebimento():
         df_mesclado['STATUS'] = df_mesclado['STATUS'].replace('', 'NAO ENCONTRADO')
         df_mesclado['CNPJ_SEM_MASCARA'] = df_mesclado['cnpjRemetenteFmt'].apply(lambda x: self.utils.remover_mascara(x))
         df_mesclado['CNPJ_FILIAL'] = cnpj_filial
+        df_mesclado['qtdDias'] = data_frame_suframa['qtdDias'].astype(int)
         return df_mesclado             
     
     @log_exceptions
@@ -160,9 +163,10 @@ class ConsultaRecebimento():
         fluig.driver.find_element(By.CSS_SELECTOR, '#tabDadosAdicionais').click()
         WebDriverWait(fluig.driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#chaveAcesso"))).send_keys(chave_acesso)
         fluig.driver.find_element(By.CSS_SELECTOR, '#cnpj').send_keys(cnpj_fornecedor)
-        fluig.driver.find_element(By.CSS_SELECTOR, '#razao_fornecedor').send_keys(razao_fornecedor)
-        fluig.driver.find_element(By.CSS_SELECTOR, '#razao_fornecedor').click()
+        fluig.driver.find_element(By.CSS_SELECTOR, '#razaoSocial').send_keys(razao_fornecedor)
+        fluig.driver.switch_to.default_content()
+        fluig.driver.find_element(By.CSS_SELECTOR, '#send-process-button').click()
         WebDriverWait(fluig.driver, 120).until(EC.text_to_be_present_in_element((By.CSS_SELECTOR, "#message-page > div > div.title"), "iniciada com sucesso."))
-        chamado = self.driver.find_element(By.CSS_SELECTOR, "#message-page > div > div.title > span > a").text.strip()
+        chamado = fluig.driver.find_element(By.CSS_SELECTOR, "#message-page > div > div.title > span > a").text.strip()
         self.utils.kill_process_by_name_fast('Chrome.exe')
         return chamado
