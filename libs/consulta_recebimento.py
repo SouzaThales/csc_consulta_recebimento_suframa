@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING
 from utils_aem import utils
 from libs.exceptions import log_exceptions
 from sistemas.suframa import suframa_selenium
-from sistemas.fluig import fluig_request
+from sistemas.fluig import fluig_request, fluig_selenium
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 if TYPE_CHECKING:
     from pandas import DataFrame
 
@@ -15,7 +18,7 @@ class ConsultaRecebimento():
     
     
     def __init__(self):
-        self.url_recebimento =  'https://simnac.suframa.gov.br/#/confirmar-recebimento-mercadoria'
+        self.url_abrir_chamado_revenda = 'https://fluig.fortbras.com.br:8444/portal/p/01/pageworkflowview?processID=falafort&coddep=1&codcel=4&codgrup=18&codatv=52'
         self.utils = utils.Utils()
 
     @log_exceptions
@@ -130,3 +133,18 @@ class ConsultaRecebimento():
         df_mesclado['CNPJ_SEM_MASCARA'] = df_mesclado['cnpjRemetenteFmt'].apply(lambda x: self.utils.remover_mascara(x))
         df_mesclado['CNPJ_FILIAL'] = cnpj_filial
         return df_mesclado             
+    
+    @log_exceptions
+    def abrir_chamado_para_o_csc(self, usuario:str, senha:str, ambiente:str, cnpj_filial:str, cnpj_fornecedor:str, chave_acesso:str, razao_fornecedor:str, status_nota:str) -> None:
+        fluig = fluig_selenium.FluigSelenium(usuario, senha, ambiente)
+        fluig.logar_fluig()
+        fluig.driver.get(self.url_abrir_chamado_revenda)
+        WebDriverWait(fluig.driver, 60).until(EC.frame_to_be_available_and_switch_to_it((By.CSS_SELECTOR, "#workflowView-cardViewer")))
+        fluig.driver.find_element(By.CSS_SELECTOR, '#telefoneContato').send_keys('(99) 99999-9999')
+        fluig.preencher_input_search_by_label('empresa', cnpj_filial)
+        fluig.driver.find_element(By.CSS_SELECTOR, '#motivoSolicitacao').send_keys("motivo")
+        fluig.driver.find_element(By.CSS_SELECTOR, '#tabDadosAdicionais').click()
+        WebDriverWait(fluig.driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#chaveAcesso"))).send_keys(chave_acesso)
+        fluig.driver.find_element(By.CSS_SELECTOR, '#cnpj').send_keys(cnpj_fornecedor)
+        fluig.driver.find_element(By.CSS_SELECTOR, '#razao_forncedor').send_keys(razao_fornecedor)
+        print('')

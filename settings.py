@@ -8,7 +8,7 @@ DB_NAME = 'TESTE'
 CNN_STRING = f"Driver={{SQL Server}};Server={DB_SERVER};Database={DB_NAME};Uid={DB_USER};Pwd="
 
 # Parametros do Fluig
-AMBIENTE = 'TESTE'
+AMBIENTE_FLUIG = 'PRODUCAO'
 
 # Configs Gerais
 COLUNAS_MERGE_SUFRAMA = ['cnpjRemetenteFmt', 'numeroNf']

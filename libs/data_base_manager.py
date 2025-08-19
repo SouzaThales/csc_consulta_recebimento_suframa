@@ -8,7 +8,7 @@ class DBManager():
         self.db = db
         
     @log_exceptions
-    def pegar_filiais_para_processamento(self) -> None:
+    def pegar_filiais_para_processamento(self) -> list[dict]:
         return self.db.execute_query('''
                               SELECT 
                                 CONTROLE.ID,
@@ -27,6 +27,11 @@ class DBManager():
                               AND
                                 COFRE.FLATIVO = 1 
                                 ''')
+
+    @log_exceptions
+    def pegar_chamado_para_abrir(self, maquina:str, usuario:str, assumir_linha:bool=True) -> list[dict]:
+        assumir = 1 if assumir_linha else 0
+        return self.db.execute_query(f''' EXEC sp_csc_assumir_nota_recebimento_para_abrir_chamado '{maquina}', '{usuario}', {assumir} ''')
     
     @log_exceptions
     def atualizar_execucao_filial(self, id:int, tempo_execucao:float) -> list[dict]:
@@ -41,7 +46,7 @@ class DBManager():
                                 ''')
     
     @log_exceptions
-    def pegar_notas_na_base(self) -> None:
+    def pegar_notas_na_base(self) -> list[dict]:
         return self.db.execute_query(f'''   
                                         SELECT
                                             *
