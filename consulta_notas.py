@@ -10,11 +10,11 @@ def main():
     try:
         print('\Inicio do processamento')
         db = DataBase(CNN_STRING + crypt_aes.AESCipher().decrypt(DB_KEY, DB_ENC))
-        db.atualizar_controle_execucao_inicio(46)
-        daba_base = data_base_manager.DBManager(db)
+        db.atualizar_controle_execucao_inicio(IDBOT)
+        data_base = data_base_manager.DBManager(db)
         consulta = consulta_recebimento.ConsultaRecebimento() 
         credenciais_fluig = db.get_credenciais_no_cofre(0, 'FLUIG')
-        infos_filiais = daba_base.pegar_filiais_para_processamento()
+        infos_filiais = data_base.pegar_filiais_para_processamento()
 
         for info_filial in infos_filiais:
             try:
@@ -31,19 +31,19 @@ def main():
                     print('\tFluig consultado!\n\tConciliando informações...')
                     df_itens_conciliados = consulta.conciliar_informacoes(notas_suframa, solicitacoes_fluig, info_filial.get('CNPJ_FILIAL'))
                     df_notas_para_abrir_chamados = df_itens_conciliados.query("STATUS in ['FINALIZADA', 'CANCELADA', 'NAO ENCONTRADO']")
-                    daba_base.inserir_notas_na_base(df_notas_para_abrir_chamados.to_dict(orient='records'))
+                    data_base.inserir_notas_na_base(df_notas_para_abrir_chamados.to_dict(orient='records'))
                     print('\tNotas inseridas no banco de dados!')
                 end_time = time.time() - start_time
-                daba_base.atualizar_execucao_filial(info_filial.get('ID'), end_time)
+                data_base.atualizar_execucao_filial(info_filial.get('ID'), end_time)
                 print(f'\tTempo de execução: {timedelta(seconds=int(end_time))}')
             except Exception as e:
                 print(f'\t{e}')
                 consulta.utils.kill_process_by_name_fast('Chrome.exe')
 
-        db.atualizar_controle_execucao_fim(46, 1)
+        db.atualizar_controle_execucao_fim(IDBOT, 1)
         print('\nFim do processamento')
     except Exception as e:
-        db.atualizar_controle_execucao_fim(46, 0)
+        db.atualizar_controle_execucao_fim(IDBOT, 0)
         raise Exception(f'{e}')
     
 

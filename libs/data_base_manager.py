@@ -1,6 +1,8 @@
 from settings import *
+from typing import TYPE_CHECKING
 from libs.exceptions import log_exceptions
-
+if TYPE_CHECKING:
+    from datetime import datetime
 
 class DBManager():
 
@@ -53,7 +55,19 @@ class DBManager():
                                 CSC_NOTAS_AGUARDANDO_RECEBIMENTO
                               SET 
                                 CHAMADO_ABERTO_CSC = '{numero_chamado}',
-                                ID_STATUS_PROCESSAMENTO = 3
+                                ID_STATUS_PROCESSAMENTO = 3,
+                                DT_ABERTURA_CHAMADO = GETDATE()
+                              WHERE
+                                ID = {id} 
+                                ''')
+  
+    @log_exceptions
+    def atualizar_erro_abertura_chamado(self, id:int, mensagem_erro:str) -> list[dict]:
+        self.db.execute_query(f'''
+                              UPDATE 
+                                CSC_NOTAS_AGUARDANDO_RECEBIMENTO
+                              SET 
+                                MSG_ERRO = '{mensagem_erro}',
                               WHERE
                                 ID = {id} 
                                 ''')
