@@ -109,7 +109,8 @@ class DBManager():
                               NUMERO_NF,
                               CNPJ_FILIAL,
                               CHAVE_NF,
-                              RAZAO_FORNECEDOR
+                              RAZAO_FORNECEDOR,
+                              DATA_EMISSAO_NF
                             ) 
                             VALUES (
                                 24,
@@ -121,7 +122,8 @@ class DBManager():
                                 '{infos_item.get('numeroNf')}', 
                                 '{infos_item.get('CNPJ_FILIAL')}', 
                                 '{infos_item.get('CHAVEACESSONFCOMPRA')}', 
-                                '{infos_item.get('razaoRemetente')}'
+                                '{infos_item.get('razaoRemetente')}',
+                                '{infos_item.get('dataEmissaoNfeFmt')}'
                             );
                         '''
             notas_na_base.append({'CHAVE_IDENTIFICADORA':chave_unica, 'QUANTIDADE_DIAS_VISTORIA':int(infos_item.get('qtdDias'))})
