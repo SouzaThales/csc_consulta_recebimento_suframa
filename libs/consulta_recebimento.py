@@ -117,7 +117,9 @@ class ConsultaRecebimento():
             data_frame_suframa[coluna] = data_frame_suframa[coluna].astype(str).str.strip()
         for coluna in COLUNAS_MERGE_FLUIG:
             data_frame_fluig[coluna] = data_frame_fluig[coluna].astype(str).str.strip()
-
+        
+        data_frame_fluig['NUMERONOTAFISCAL'] = data_frame_fluig['NUMERONOTAFISCAL'].str.lstrip('0')
+        data_frame_suframa['numeroNf'] = data_frame_suframa['numeroNf'].str.lstrip('0')
         data_frame_suframa['numeroNf'] = data_frame_suframa['numeroNf'].astype(str)
         data_frame_fluig['cnpjRemetenteFmt'] = data_frame_suframa['cnpjRemetenteFmt'].astype(str)
         data_frame_fluig['numeroNf'] = data_frame_suframa['numeroNf'].astype(str)

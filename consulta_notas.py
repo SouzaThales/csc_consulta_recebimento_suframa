@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from libs import consulta_recebimento, data_base_manager
 
 
-def main():
+def main() -> None:
     try:
         print('Inicio do processamento')
         qnt_falhas = 0
