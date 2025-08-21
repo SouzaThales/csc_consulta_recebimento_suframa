@@ -9,6 +9,7 @@ from libs import consulta_recebimento, data_base_manager
 def main():
     try:
         print('Inicio do processamento')
+        qnt_falhas = 0
         db = DataBase(CNN_STRING + crypt_aes.AESCipher().decrypt(DB_KEY, DB_ENC))
         db.atualizar_controle_execucao_inicio(IDBOT)
         data_base = data_base_manager.DBManager(db)
@@ -37,9 +38,10 @@ def main():
                 print(f'\tTempo de execução: {timedelta(seconds=int(end_time))}')
             except Exception as e:
                 print(f'\t{e}')
+                qnt_falhas += 1
                 consulta.utils.kill_process_by_name_fast('Chrome.exe')
 
-        db.atualizar_controle_execucao_fim(IDBOT, 1)
+        db.atualizar_controle_execucao_fim(IDBOT, 1 if qnt_falhas==0 else 0)
         print('Fim do processamento')
     except Exception as e:
         db.atualizar_controle_execucao_fim(IDBOT, 0)
