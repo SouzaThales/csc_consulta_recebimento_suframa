@@ -11,7 +11,7 @@ def main() -> None:
         data_base = data_base_manager.DBManager(db)
         consulta = consulta_recebimento.ConsultaRecebimento() 
         credenciais_fluig = db.get_credenciais_no_cofre(0, 'FLUIG')
-        lista_chamados_para_abrir = data_base.pegar_chamado_para_abrir(os.getlogin(), os.environ['COMPUTERNAME'])
+        lista_chamados_para_abrir = data_base.pegar_chamado_para_abrir(os.environ['COMPUTERNAME'], os.getlogin(), False)
 
         if not lista_chamados_para_abrir:
             print('Nada para fazer!')
