@@ -147,7 +147,7 @@ class ConsultaRecebimento():
                   
     @log_exceptions
     def montar_motivo_abertura_chamado(self, status_nota:str, numero_nf:str, numero_fluig:str, qnt_dias_vistoria:int) -> str:
-        if status_nota == 'NAO ENCONTRADO':
+        if status_nota != 'NAO ENCONTRADO':
             msg = f'''Nota fiscal {numero_nf}, Fluig {numero_fluig} - STATUS {status_nota} - QTD DE DIAS RESTANTE VISTORIA {qnt_dias_vistoria}'''
         else:
             msg = f'''Nota fiscal {numero_nf}, Fluig NÃO LOCALIZADO - QUANTIDADE DE DIAS RESTANTE VISTORIA {qnt_dias_vistoria}'''
