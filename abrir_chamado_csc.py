@@ -6,6 +6,7 @@ from libs import consulta_recebimento, data_base_manager
 
 def main() -> None:
     try:
+
         print('Inicio do processamento')
         db = DataBase(CNN_STRING + crypt_aes.AESCipher().decrypt(DB_KEY, DB_ENC))
         data_base = data_base_manager.DBManager(db)
@@ -44,6 +45,6 @@ def main() -> None:
     except Exception as e:
         raise Exception(f'{e}')
 
+
 if __name__ == "__main__":
-    for _ in range(10):
-        main()
+    main()
