@@ -92,9 +92,9 @@ class DBManager():
             relacionados_na_base = [nota for nota in notas_na_base if nota.get('CHAVE_IDENTIFICADORA') == chave_unica]                      
             tem_dois_chamados_na_base = len(relacionados_na_base) == 2
             tem_na_base_e_esta_dentro_do_limite_vistoria = len(relacionados_na_base) > 0 and int(infos_item.get('qtdDias')) > DIAS_LIMITE_VISTORIA
-            tem_na_base_menor_que_cinco_dias = len(relacionados_na_base) == 1 and relacionados_na_base[0].get('QUANTIDADE_DIAS_VISTORIA') <= DIAS_LIMITE_VISTORIA
+            tem_na_base_menor_igual_limite_vistoria = len(relacionados_na_base) == 1 and relacionados_na_base[0].get('QUANTIDADE_DIAS_VISTORIA') <= DIAS_LIMITE_VISTORIA
 
-            if tem_dois_chamados_na_base or tem_na_base_e_esta_dentro_do_limite_vistoria or tem_na_base_menor_que_cinco_dias:
+            if tem_dois_chamados_na_base or tem_na_base_e_esta_dentro_do_limite_vistoria or tem_na_base_menor_igual_limite_vistoria:
                 continue
     
             queries += f'''
