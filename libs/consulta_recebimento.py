@@ -123,6 +123,10 @@ class ConsultaRecebimento():
         data_frame_suframa['numeroNf'] = data_frame_suframa['numeroNf'].astype(str)
         data_frame_fluig['cnpjRemetenteFmt'] = data_frame_suframa['cnpjRemetenteFmt'].astype(str)
         data_frame_fluig['numeroNf'] = data_frame_suframa['numeroNf'].astype(str)
+        # Deixar apenas uma linha por nf+forncedor sendo a do fluig mais recente
+        data_frame_fluig = data_frame_fluig.sort_values(COLUNAS_MERGE_FLUIG+['START_DATE'], ascending=[True, True, True])
+        data_frame_fluig = data_frame_fluig.drop_duplicates(subset=COLUNAS_MERGE_FLUIG, keep='first')
+
         df_mesclado = data_frame_suframa.merge(
             data_frame_fluig[COLUNAS_MERGE_FLUIG + COLUNAS_FLUIG_UTILIZADAS]
                 .drop_duplicates(subset=COLUNAS_MERGE_FLUIG, keep='first'),
